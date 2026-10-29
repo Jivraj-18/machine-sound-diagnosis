@@ -12,7 +12,7 @@ Exploratory baseline on the IIT Kanpur air-compressor dataset (Verma et al., IEE
 | How many labelled examples per fault? | **~5 per fault gives ~96–97%; 10 gives ~99%.** With 1 example: ~75–80%. Best: FISHER (industrial-signal model) at 97.4% with 5. |
 | Which faults get confused? | Valve faults with each other (LIV ↔ NRV ↔ LOV) and mechanical faults with each other (Bearing ↔ Flywheel ↔ Piston); for the best model also Riderbelt → LOV. Healthy is never confused. |
 | Does zero-shot work? | **No.** CLAP text prompts: 14–16%. Gemini 3.1 Pro listening to the clip: 16%. Chance is 12.5%. |
-| Demo-worthy? | **Yes, as a "teach it 5 examples per fault" demo. No, as a "the AI recognises faults on its own" demo.** The main open risk is that everything comes from one compressor in one lab (see caveats). |
+| Does it work? | **Yes, when it learns from ~5 examples per fault. No, when it has to recognise faults on its own.** The main open question is that everything comes from one compressor in one lab (see caveats). |
 
 ## 1. What I did
 
@@ -104,7 +104,7 @@ With 5 examples per fault, the best model (FISHER @50k, `confusion/best_fewshot_
 
 ## 4. Why this result is weaker than "100%" suggests
 
-1. **One compressor, one lab, one microphone position.** Every result here is "telling apart recordings from the same machine". Nothing says a model trained here would work on another compressor, another room or another microphone. That is the claim a customer cares about, and it is untested.
+1. **One compressor, one lab, one microphone position.** Every result here is "telling apart recordings from the same machine". Nothing says a model trained here would work on another compressor, another room or another microphone. Whether it does is the most important open question, and it is untested.
 2. **Each fault was most likely recorded as its own session.** A fault had to be physically introduced, then 225 recordings taken. The class label is therefore mixed up with everything else about that session: background noise, mic placement, temperature, tank pressure.
    - The block split rules out drift *within* a session, but nothing in this dataset can separate "the fault" from "the day it was recorded".
    - The fact that the 64-band average spectrum alone gives 100% is consistent with both explanations.
@@ -130,7 +130,7 @@ Measured on Kaggle (4 vCPU + T4) and the laptop (`resources.csv`). The scenario 
 - **Model sizes are small.** Peak GPU memory was 0.1–1.3 GB and peak RAM 2–3.7 GB per model. Model load takes 1–35 s, once.
 - **Training cost is negligible.** Fitting the classifier on 40 labelled clips takes milliseconds.
 - **This experiment's paid cost** was ≈ $1.94 of Gemini tokens at Google list price (320 calls). The gateway's internal charge may differ. Kaggle GPU time was free.
-- **Bottom line:** a demo runs on a laptop with no cloud at all. At fleet scale the ML compute is cents per machine per month on CPU. Audio capture, transport and storage, not ML, will dominate the cost.
+- **Bottom line:** the pipeline runs on a laptop with no cloud at all. Across many machines the ML compute is cents per machine per month on CPU. Audio capture, transport and storage, not ML, will dominate the cost.
 
 ## 5b. Real time (measured)
 
@@ -145,17 +145,17 @@ Measured on Kaggle (4 vCPU + T4) and the laptop (`resources.csv`). The scenario 
 | Gemini 3.1 Pro zero-shot | API | 6.3 s (median response time of the 50 kHz zero-shot calls) | – | at chance |
 
 - So an answer arrives about 1 s after the sound starts (the 1-s clip plus tens of milliseconds), and the machine can be checked every second, continuously.
-- FISHER could not be timed on the laptop because the office network blocks Hugging Face's file CDN; Kaggle's 4-vCPU machine stands in for a small server.
+- FISHER could not be timed on the laptop because its model files could not be downloaded there; Kaggle's 4-vCPU machine stands in for a small server.
 - Measured on recorded clips, not yet from a live microphone.
 
 ## 6. Verdict
 
-- **Worth a demo, if it is framed as "few-shot enrolment".**
-  - The pitch: record a handful of examples of each known fault, and the system recognises them from then on (~97% here with 5 examples per fault).
+- **Few-shot enrolment works.**
+  - Record a handful of examples of each known fault, and the system recognises them from then on (~97% here with 5 examples per fault).
   - FISHER, or just handcrafted features, on a laptop, in real time.
   - Healthy vs faulty is rock-solid; "which valve" is the weakest part.
-- **Not worth a demo if the pitch is "an AI that recognises faults it hasn't been shown".** Both zero-shot routes are at chance. Gemini in particular produces confident, plausible-sounding explanations for wrong answers, which is the worst possible demo failure.
-- **Before anyone makes claims to a customer, run one cheap test:** record a second machine (or the same machine on a different day or with a different mic position), train on this data plus k examples from the new setting, and test on the rest. If accuracy holds, there is a product story. If it collapses, the 100% here was "this machine, this session".
+- **Recognising faults it hasn't been shown does not work.** Both zero-shot routes are at chance. Gemini in particular produces confident, plausible-sounding explanations for wrong answers.
+- **Next, run one cheap test:** record a second machine (or the same machine on a different day or with a different mic position), train on this data plus k examples from the new setting, and test on the rest. If accuracy holds, the method generalises. If it collapses, the 100% here was "this machine, this session".
 
 ## Reproduce
 
