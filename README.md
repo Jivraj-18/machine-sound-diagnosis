@@ -22,6 +22,19 @@ Source: [`results/results.csv`](results/results.csv).
 - **Healthy is never confused with a fault.** The errors are valve faults with each other and mechanical faults (Bearing/Flywheel/Piston) with each other.
 - **All recordings come from one compressor in one lab**, so transfer to other machines is untested.
 
+## Cost and speed
+
+"Cost per compressor per month" is the compute bill for analysing one compressor's sound for a month, at one 1-second clip
+per minute (43,800 clips). Sources: [`results/cost_at_scale.csv`](results/cost_at_scale.csv) and [`results/latency_laptop.csv`](results/latency_laptop.csv) / [`latency_kaggle.csv`](results/latency_kaggle.csv).
+
+| | Accuracy, 5 examples | Cost per compressor / month (CPU server) | Analysis time per 1-s clip |
+|---|---|---|---|
+| Handcrafted features | 96.0–96.5% | $0.10 | 30 ms (laptop), 26 ms (cloud CPU) |
+| FISHER | 97.4% | $0.27 | 63 ms (cloud CPU), 9.9 ms (T4 GPU) |
+| Gemini 3.1 Pro zero-shot | 16.3% | $254 | 6.3 s (API) |
+
+No GPU is needed: every pipeline keeps up on an ordinary 4-vCPU server or a laptop.
+
 ## Repository layout
 
 | File | What it does |
@@ -33,6 +46,7 @@ Source: [`results/results.csv`](results/results.csv).
 | `evaluate.py` | protocols A–D → `results/results.csv`, confusion matrices, misclassified clips |
 | `analyze_misses.py` | spectral analysis of the errors, splice-click detection |
 | `cost_estimate.py` | measured compute → cost-at-scale table |
+| `latency_bench.py` | one-clip-at-a-time answer time (laptop; `kaggle/build_latency_kernel.py` runs it on a Kaggle CPU + T4) |
 | `build_site.py`, `docs/` | the static page (GitHub Pages serves `docs/`) |
 | `verify_site.py` | browser check of the page: audio, images, phone width, numbers vs `results.csv` |
 
@@ -48,6 +62,8 @@ python embed_pretrained.py --raw cache/raw.npz --out cache     # GPU
 python zeroshot_clap.py
 python zeroshot_gemini.py --sr 50k && python zeroshot_gemini.py --sr 16k   # GEMINI_API_KEY in env or .env
 python evaluate.py
+python features_handcrafted.py --sr 50000 --bench      # 1-core timing for the cost table (repeat a few times)
+python latency_bench.py                                # answer time per clip
 python analyze_misses.py && python cost_estimate.py && python build_site.py
 python verify_site.py http://127.0.0.1:8000/    # after: python -m http.server 8000 --directory docs
 ```

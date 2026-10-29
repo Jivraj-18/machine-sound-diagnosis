@@ -4,7 +4,9 @@ Usage: python cost_estimate.py
 Reads results/resources_local.csv (this laptop) and results/resources_kaggle.csv (Kaggle T4 box),
 cache/zs_*_usage.json (Gemini token counts). Writes results/resources.csv and results/cost_at_scale.csv.
 
-Scenario: N machines, each sends one 1-second clip every CLIP_INTERVAL_S seconds.
+Scenario: N machines (compressors), each sends one 1-second clip every CLIP_INTERVAL_S seconds,
+i.e. 43,800 clips per machine per month. "Cost per machine per month" is the compute bill for analysing those
+clips, assuming enough machines to fill the servers.
 Prices are list prices checked on 2026-10-29 (see REPORT.md for sources); edit PRICES to re-run.
 """
 import csv
@@ -52,28 +54,40 @@ def main():
     res.to_csv(RESULTS_DIR / "resources.csv", index=False)
 
     clips_per_hour_per_machine = 3600 / CLIP_INTERVAL_S
+    clips_per_machine_month = clips_per_hour_per_machine * HOURS_PER_MONTH
     rows = []
+    CPU, GPU = "c7i.xlarge (4 vCPU, 8 GiB)", "g4dn.xlarge (4 vCPU, 1x T4)"
 
-    def add(pipeline, box, ms_per_clip_on_box, note):
+    def add(model, rate, method, box, ms_per_clip_on_box, note):
         clips_per_hour = UTILISATION * 3600 * 1000 / ms_per_clip_on_box
         machines_per_box = clips_per_hour / clips_per_hour_per_machine
         usd_month = PRICES[box] * HOURS_PER_MONTH
-        rows.append(dict(pipeline=pipeline, hardware=box, measured_ms_per_clip=round(ms_per_clip_on_box, 2),
-                         machines_per_box_at_1clip_per_min=int(machines_per_box),
-                         usd_per_box_month=round(usd_month, 0),
-                         usd_per_machine_month=round(usd_month / machines_per_box, 4),
-                         usd_per_1000_machines_month=round(1000 * usd_month / machines_per_box, 1), note=note))
+        per_machine = usd_month / machines_per_box
+        rows.append(dict(model=model, sample_rate=rate, method=method, hardware=box,
+                         measured_ms_per_clip=round(ms_per_clip_on_box, 2),
+                         machines_per_server=int(machines_per_box), usd_per_server_month=round(usd_month, 0),
+                         usd_per_1000_clips=round(1000 * per_machine / clips_per_machine_month, 6),
+                         usd_per_machine_month=round(per_machine, 4), note=note))
 
     get = lambda n: res.loc[res["name"] == n, "ms_per_clip"].iloc[0]  # noqa: E731
-    # handcrafted: measured single-core; assume 4 vCPU box runs 4 workers in parallel (conservative: 2 phys cores)
-    add("handcrafted + SVM", "c7i.xlarge (4 vCPU, 8 GiB)", get("handcrafted_sr50k_1core") / 2,
-        "37 ms/clip on 1 laptop core; scaled to 2 physical cores")
-    for model, rate in [("fisher", "50k"), ("beats", "16k"), ("dasheng", "50k"), ("echo", "50k"),
-                        ("clap", "50k")]:
-        add(f"{model} @{rate} + logreg", "c7i.xlarge (4 vCPU, 8 GiB)", get(f"{model}_sr{rate}_cpu"),
-            "measured on Kaggle 4-vCPU CPU, batch inference")
-        add(f"{model} @{rate} + logreg", "g4dn.xlarge (4 vCPU, 1x T4)", get(f"{model}_sr{rate}"),
-            "measured on Kaggle T4, batch inference (GPU mostly idle at this scale)")
+    # handcrafted: features_handcrafted.py --bench (1 laptop core, after warm-up). Both rates process the same
+    # 50,000 samples (the rate only moves band edges), so pool the warm runs of both and take the median.
+    # A 4 vCPU box runs 4 workers; count it as 2 physical cores (conservative).
+    hc = res[res["name"].str.startswith("handcrafted_") & res["name"].str.endswith("_1core")
+             & res["extra"].str.contains('"warmup": true')]["ms_per_clip"]
+    for rate in ["50k", "16k"]:
+        add("handcrafted", rate, "few-shot (logreg)", CPU, hc.median() / 2,
+            f"median of {len(hc)} warm 1-core laptop runs ({hc.min():.0f}-{hc.max():.0f} ms), "
+            "scaled to 2 physical cores")
+    for model in ["fisher", "beats", "dasheng", "echo", "clap"]:
+        for rate in ["50k", "16k"]:
+            add(model, rate, "few-shot (logreg)", CPU, get(f"{model}_sr{rate}_cpu"),
+                "measured on Kaggle 4-vCPU CPU, batch inference")
+            add(model, rate, "few-shot (logreg)", GPU, get(f"{model}_sr{rate}"),
+                "measured on Kaggle T4, batch inference (GPU mostly idle at this scale)")
+    # CLAP zero-shot: same audio embedding as above; the text embeddings are computed once
+    for r in [r for r in rows if r["model"] == "clap"]:
+        rows.append({**r, "method": "zero-shot", "note": r["note"] + "; text prompts embedded once"})
     # Gemini zero-shot: per-call token cost, no hardware
     for p in sorted(CACHE_DIR.glob("zs_gemini-*_usage.json")):
         u = json.loads(p.read_text())
@@ -83,13 +97,12 @@ def main():
         t = u["tokens"]
         per_clip = (t["promptTokenCount"] * GEMINI[model]["inp"] +
                     (t["candidatesTokenCount"] + t["thoughtsTokenCount"]) * GEMINI[model]["out"]) / 1e6 / u["n"]
-        per_machine_month = per_clip * clips_per_hour_per_machine * HOURS_PER_MONTH
-        rows.append(dict(pipeline=f"{model} zero-shot ({p.stem.rsplit('_sr', 1)[1].split('_')[0]})",
+        rows.append(dict(model=model, sample_rate=p.stem.rsplit("_sr", 1)[1].split("_")[0], method="zero-shot",
                          hardware="API", measured_ms_per_clip=round(1000 * u["median_latency_s"]),
-                         machines_per_box_at_1clip_per_min=None, usd_per_box_month=None,
-                         usd_per_machine_month=round(per_machine_month, 2),
-                         usd_per_1000_machines_month=round(1000 * per_machine_month, 0),
-                         note=f"${per_clip:.5f}/clip from measured tokens; accuracy at chance"))
+                         machines_per_server=None, usd_per_server_month=None,
+                         usd_per_1000_clips=round(1000 * per_clip, 4),
+                         usd_per_machine_month=round(per_clip * clips_per_machine_month, 2),
+                         note=f"${per_clip:.5f}/clip from measured tokens ({u['n']} calls), list price"))
     df = pd.DataFrame(rows)
     df.to_csv(RESULTS_DIR / "cost_at_scale.csv", index=False)
     pd.set_option("display.width", 250)

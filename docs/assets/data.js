@@ -961,82 +961,388 @@ window.DATA = {
  "n_click": 227,
  "cost": [
   {
-   "pipeline": "handcrafted + SVM",
+   "model": "handcrafted",
+   "rate": "50k",
+   "method": "few-shot (logreg)",
+   "hw": "cpu",
    "hardware": "c7i.xlarge (4 vCPU, 8 GiB)",
-   "per_machine": 0.0804,
-   "machines_per_box": 1620
+   "ms": 22.76,
+   "per_machine": 0.0988,
+   "per_1000": 0.002257,
+   "machines_per_server": 1318,
+   "server_month": 130.0
   },
   {
-   "pipeline": "fisher @50k + logreg",
+   "model": "handcrafted",
+   "rate": "16k",
+   "method": "few-shot (logreg)",
+   "hw": "cpu",
    "hardware": "c7i.xlarge (4 vCPU, 8 GiB)",
+   "ms": 22.76,
+   "per_machine": 0.0988,
+   "per_1000": 0.002257,
+   "machines_per_server": 1318,
+   "server_month": 130.0
+  },
+  {
+   "model": "fisher",
+   "rate": "50k",
+   "method": "few-shot (logreg)",
+   "hw": "cpu",
+   "hardware": "c7i.xlarge (4 vCPU, 8 GiB)",
+   "ms": 62.58,
    "per_machine": 0.2718,
-   "machines_per_box": 479
+   "per_1000": 0.006206,
+   "machines_per_server": 479,
+   "server_month": 130.0
   },
   {
-   "pipeline": "fisher @50k + logreg",
+   "model": "fisher",
+   "rate": "50k",
+   "method": "few-shot (logreg)",
+   "hw": "gpu",
    "hardware": "g4dn.xlarge (4 vCPU, 1x T4)",
+   "ms": 1.85,
    "per_machine": 0.0237,
-   "machines_per_box": 16216
+   "per_1000": 0.000541,
+   "machines_per_server": 16216,
+   "server_month": 384.0
   },
   {
-   "pipeline": "beats @16k + logreg",
+   "model": "fisher",
+   "rate": "16k",
+   "method": "few-shot (logreg)",
+   "hw": "cpu",
    "hardware": "c7i.xlarge (4 vCPU, 8 GiB)",
+   "ms": 63.32,
+   "per_machine": 0.275,
+   "per_1000": 0.006279,
+   "machines_per_server": 473,
+   "server_month": 130.0
+  },
+  {
+   "model": "fisher",
+   "rate": "16k",
+   "method": "few-shot (logreg)",
+   "hw": "gpu",
+   "hardware": "g4dn.xlarge (4 vCPU, 1x T4)",
+   "ms": 1.28,
+   "per_machine": 0.0164,
+   "per_1000": 0.000374,
+   "machines_per_server": 23437,
+   "server_month": 384.0
+  },
+  {
+   "model": "beats",
+   "rate": "50k",
+   "method": "few-shot (logreg)",
+   "hw": "cpu",
+   "hardware": "c7i.xlarge (4 vCPU, 8 GiB)",
+   "ms": 51.59,
+   "per_machine": 0.2241,
+   "per_1000": 0.005116,
+   "machines_per_server": 581,
+   "server_month": 130.0
+  },
+  {
+   "model": "beats",
+   "rate": "50k",
+   "method": "few-shot (logreg)",
+   "hw": "gpu",
+   "hardware": "g4dn.xlarge (4 vCPU, 1x T4)",
+   "ms": 4.86,
+   "per_machine": 0.0622,
+   "per_1000": 0.00142,
+   "machines_per_server": 6172,
+   "server_month": 384.0
+  },
+  {
+   "model": "beats",
+   "rate": "16k",
+   "method": "few-shot (logreg)",
+   "hw": "cpu",
+   "hardware": "c7i.xlarge (4 vCPU, 8 GiB)",
+   "ms": 152.59,
    "per_machine": 0.6628,
-   "machines_per_box": 196
+   "per_1000": 0.015132,
+   "machines_per_server": 196,
+   "server_month": 130.0
   },
   {
-   "pipeline": "beats @16k + logreg",
+   "model": "beats",
+   "rate": "16k",
+   "method": "few-shot (logreg)",
+   "hw": "gpu",
    "hardware": "g4dn.xlarge (4 vCPU, 1x T4)",
+   "ms": 10.91,
    "per_machine": 0.1396,
-   "machines_per_box": 2749
+   "per_1000": 0.003188,
+   "machines_per_server": 2749,
+   "server_month": 384.0
   },
   {
-   "pipeline": "dasheng @50k + logreg",
+   "model": "dasheng",
+   "rate": "50k",
+   "method": "few-shot (logreg)",
+   "hw": "cpu",
    "hardware": "c7i.xlarge (4 vCPU, 8 GiB)",
+   "ms": 19.74,
    "per_machine": 0.0857,
-   "machines_per_box": 1519
+   "per_1000": 0.001958,
+   "machines_per_server": 1519,
+   "server_month": 130.0
   },
   {
-   "pipeline": "dasheng @50k + logreg",
+   "model": "dasheng",
+   "rate": "50k",
+   "method": "few-shot (logreg)",
+   "hw": "gpu",
    "hardware": "g4dn.xlarge (4 vCPU, 1x T4)",
+   "ms": 1.87,
    "per_machine": 0.0239,
-   "machines_per_box": 16042
+   "per_1000": 0.000546,
+   "machines_per_server": 16042,
+   "server_month": 384.0
   },
   {
-   "pipeline": "echo @50k + logreg",
+   "model": "dasheng",
+   "rate": "16k",
+   "method": "few-shot (logreg)",
+   "hw": "cpu",
    "hardware": "c7i.xlarge (4 vCPU, 8 GiB)",
+   "ms": 66.93,
+   "per_machine": 0.2907,
+   "per_1000": 0.006637,
+   "machines_per_server": 448,
+   "server_month": 130.0
+  },
+  {
+   "model": "dasheng",
+   "rate": "16k",
+   "method": "few-shot (logreg)",
+   "hw": "gpu",
+   "hardware": "g4dn.xlarge (4 vCPU, 1x T4)",
+   "ms": 5.36,
+   "per_machine": 0.0686,
+   "per_1000": 0.001566,
+   "machines_per_server": 5597,
+   "server_month": 384.0
+  },
+  {
+   "model": "echo",
+   "rate": "50k",
+   "method": "few-shot (logreg)",
+   "hw": "cpu",
+   "hardware": "c7i.xlarge (4 vCPU, 8 GiB)",
+   "ms": 46.48,
    "per_machine": 0.2019,
-   "machines_per_box": 645
+   "per_1000": 0.004609,
+   "machines_per_server": 645,
+   "server_month": 130.0
   },
   {
-   "pipeline": "echo @50k + logreg",
+   "model": "echo",
+   "rate": "50k",
+   "method": "few-shot (logreg)",
+   "hw": "gpu",
    "hardware": "g4dn.xlarge (4 vCPU, 1x T4)",
+   "ms": 6.45,
    "per_machine": 0.0826,
-   "machines_per_box": 4651
+   "per_1000": 0.001885,
+   "machines_per_server": 4651,
+   "server_month": 384.0
   },
   {
-   "pipeline": "clap @50k + logreg",
+   "model": "echo",
+   "rate": "16k",
+   "method": "few-shot (logreg)",
+   "hw": "cpu",
    "hardware": "c7i.xlarge (4 vCPU, 8 GiB)",
-   "per_machine": 1.3288,
-   "machines_per_box": 98
+   "ms": 42.01,
+   "per_machine": 0.1825,
+   "per_1000": 0.004166,
+   "machines_per_server": 714,
+   "server_month": 130.0
   },
   {
-   "pipeline": "clap @50k + logreg",
+   "model": "echo",
+   "rate": "16k",
+   "method": "few-shot (logreg)",
+   "hw": "gpu",
    "hardware": "g4dn.xlarge (4 vCPU, 1x T4)",
+   "ms": 5.82,
+   "per_machine": 0.0745,
+   "per_1000": 0.001701,
+   "machines_per_server": 5154,
+   "server_month": 384.0
+  },
+  {
+   "model": "clap",
+   "rate": "50k",
+   "method": "few-shot (logreg)",
+   "hw": "cpu",
+   "hardware": "c7i.xlarge (4 vCPU, 8 GiB)",
+   "ms": 305.93,
+   "per_machine": 1.3288,
+   "per_1000": 0.030338,
+   "machines_per_server": 98,
+   "server_month": 130.0
+  },
+  {
+   "model": "clap",
+   "rate": "50k",
+   "method": "few-shot (logreg)",
+   "hw": "gpu",
+   "hardware": "g4dn.xlarge (4 vCPU, 1x T4)",
+   "ms": 50.4,
    "per_machine": 0.6451,
-   "machines_per_box": 595
+   "per_1000": 0.014728,
+   "machines_per_server": 595,
+   "server_month": 384.0
   },
   {
-   "pipeline": "gemini-3.1-pro-preview zero-shot (16k)",
+   "model": "clap",
+   "rate": "16k",
+   "method": "few-shot (logreg)",
+   "hw": "cpu",
+   "hardware": "c7i.xlarge (4 vCPU, 8 GiB)",
+   "ms": 290.89,
+   "per_machine": 1.2635,
+   "per_1000": 0.028847,
+   "machines_per_server": 103,
+   "server_month": 130.0
+  },
+  {
+   "model": "clap",
+   "rate": "16k",
+   "method": "few-shot (logreg)",
+   "hw": "gpu",
+   "hardware": "g4dn.xlarge (4 vCPU, 1x T4)",
+   "ms": 64.87,
+   "per_machine": 0.8303,
+   "per_1000": 0.018956,
+   "machines_per_server": 462,
+   "server_month": 384.0
+  },
+  {
+   "model": "clap",
+   "rate": "50k",
+   "method": "zero-shot",
+   "hw": "cpu",
+   "hardware": "c7i.xlarge (4 vCPU, 8 GiB)",
+   "ms": 305.93,
+   "per_machine": 1.3288,
+   "per_1000": 0.030338,
+   "machines_per_server": 98,
+   "server_month": 130.0
+  },
+  {
+   "model": "clap",
+   "rate": "50k",
+   "method": "zero-shot",
+   "hw": "gpu",
+   "hardware": "g4dn.xlarge (4 vCPU, 1x T4)",
+   "ms": 50.4,
+   "per_machine": 0.6451,
+   "per_1000": 0.014728,
+   "machines_per_server": 595,
+   "server_month": 384.0
+  },
+  {
+   "model": "clap",
+   "rate": "16k",
+   "method": "zero-shot",
+   "hw": "cpu",
+   "hardware": "c7i.xlarge (4 vCPU, 8 GiB)",
+   "ms": 290.89,
+   "per_machine": 1.2635,
+   "per_1000": 0.028847,
+   "machines_per_server": 103,
+   "server_month": 130.0
+  },
+  {
+   "model": "clap",
+   "rate": "16k",
+   "method": "zero-shot",
+   "hw": "gpu",
+   "hardware": "g4dn.xlarge (4 vCPU, 1x T4)",
+   "ms": 64.87,
+   "per_machine": 0.8303,
+   "per_1000": 0.018956,
+   "machines_per_server": 462,
+   "server_month": 384.0
+  },
+  {
+   "model": "gemini-3.1-pro-preview",
+   "rate": "16k",
+   "method": "zero-shot",
+   "hw": "api",
    "hardware": "API",
+   "ms": 6410.0,
    "per_machine": 275.47,
-   "machines_per_box": null
+   "per_1000": 6.2892,
+   "machines_per_server": null,
+   "server_month": null
   },
   {
-   "pipeline": "gemini-3.1-pro-preview zero-shot (50k)",
+   "model": "gemini-3.1-pro-preview",
+   "rate": "50k",
+   "method": "zero-shot",
+   "hw": "api",
    "hardware": "API",
+   "ms": 6330.0,
    "per_machine": 254.16,
-   "machines_per_box": null
+   "per_1000": 5.8027,
+   "machines_per_server": null,
+   "server_month": null
   }
- ]
+ ],
+ "clips_per_month": 43800,
+ "latency": [
+  {
+   "pipeline": "handcrafted features + logreg",
+   "device": "cpu",
+   "n_clips": 100,
+   "median_ms": 30.3,
+   "p95_ms": 40.1,
+   "max_ms": 99.9,
+   "accuracy_on_timed_clips": 0.98,
+   "host": "laptop CPU (8 logical cores)",
+   "threads": 4
+  },
+  {
+   "pipeline": "handcrafted features + logreg",
+   "device": "cpu",
+   "n_clips": 100,
+   "median_ms": 26.4,
+   "p95_ms": 28.7,
+   "max_ms": 29.6,
+   "accuracy_on_timed_clips": 0.98,
+   "host": "Kaggle 4 vCPU + T4",
+   "threads": 4
+  },
+  {
+   "pipeline": "FISHER @50k + logreg",
+   "device": "cpu",
+   "n_clips": 100,
+   "median_ms": 63.1,
+   "p95_ms": 70.5,
+   "max_ms": 138.0,
+   "accuracy_on_timed_clips": 0.98,
+   "host": "Kaggle 4 vCPU + T4",
+   "threads": 4
+  },
+  {
+   "pipeline": "FISHER @50k + logreg",
+   "device": "cuda",
+   "n_clips": 100,
+   "median_ms": 9.9,
+   "p95_ms": 10.8,
+   "max_ms": 24.4,
+   "accuracy_on_timed_clips": 0.98,
+   "host": "Kaggle 4 vCPU + T4",
+   "threads": 4
+  }
+ ],
+ "gpu_peak_mb": 1304
 };

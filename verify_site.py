@@ -21,6 +21,15 @@ NAMES = {"fisher": "FISHER", "beats": "BEATs", "handcrafted": "Handcrafted", "da
          "echo": "ECHO", "clap": "CLAP"}
 
 
+def usd(v):
+    """Same money format as the page's usd()."""
+    if v >= 100:
+        return f"${round(v):,}"
+    if v >= 0.01:
+        return f"${v:.2f}"
+    return f"${v:#.2g}"  # keeps trailing zeros, like JS toPrecision(2)
+
+
 def expected_protocol_rows():
     r = pd.read_csv(RESULTS_DIR / "results.csv")
     pick = lambda **kw: r[(r[list(kw)] == pd.Series(kw)).all(axis=1)].iloc[0]  # noqa: E731
@@ -126,6 +135,48 @@ def main():
                         if cell != f"{pct(v.macro_acc_mean.iloc[0]):.1f}%":
                             fails.append(f"zero-shot mismatch {mid}@{rate}: {cell}")
                 notes.append("zero-shot table checked")
+                # accuracy-vs-cost table, every sample-rate mode x hardware
+                cost = pd.read_csv(RESULTS_DIR / "cost_at_scale.csv")
+                n_cost = 0
+                for mode in ["best", "50k", "16k"]:
+                    for hw in ["cpu", "gpu"]:
+                        page.click(f".seg button[data-mode='{mode}']")
+                        page.click(f".seg button[data-hw='{hw}']")
+                        trs = page.evaluate("[...document.querySelectorAll('#costCmpTable tbody tr')].map(tr => "
+                                            "[tr.dataset.model, tr.dataset.method, tr.dataset.rate, tr.dataset.hw, "
+                                            "...[...tr.cells].map(td => td.textContent.trim())])")
+                        for model, method, rate, rhw, _name, acc, month, per1000, _on, _per_server in trs:
+                            c = cost[(cost.model == model) & (cost.method == method) & (cost.sample_rate == rate)]
+                            c = c[c.hardware.str.startswith({"cpu": "c7i", "gpu": "g4dn", "api": "API"}[rhw])].iloc[0]
+                            want = [usd(c.usd_per_machine_month), usd(c.usd_per_1000_clips)]
+                            src = res[(res.model == model) & (res.sample_rate == rate) & (
+                                (res.protocol == "D_zeroshot") if method == "zero-shot" else
+                                ((res.protocol == "B_fewshot") & (res.classifier == "logreg") & (res.k.astype(str) == "5")))]
+                            want_acc = f"{pct(src.macro_acc_mean.iloc[0]):.1f}%"
+                            n_cost += 1
+                            if [month, per1000] != want or acc != want_acc:
+                                fails.append(f"cost table mismatch {model}/{method}@{rate}/{rhw}: page {[acc, month, per1000]}"
+                                             f" vs csv {[want_acc] + want}")
+                page.click(".seg button[data-mode='best']")
+                page.click(".seg button[data-hw='cpu']")
+                notes.append(f"accuracy-vs-cost table: {n_cost} rows checked across 3 rates x 2 hardware")
+                # real-time table vs latency csvs
+                lat = pd.concat([pd.read_csv(RESULTS_DIR / f) for f in ["latency_laptop.csv", "latency_kaggle.csv"]
+                                 if (RESULTS_DIR / f).exists()])
+                rts = page.evaluate("[...document.querySelectorAll('#rtTable tbody tr')]"
+                                    ".map(tr => [...tr.cells].map(td => td.textContent.trim()))")
+                meds = {f"{v:.1f}" if v < 10 else str(round(v)) for v in lat.median_ms}
+                gem_ms = cost[cost.model.str.startswith("gemini") & (cost.sample_rate == "50k")].measured_ms_per_clip.iloc[0]
+                for tr in rts:
+                    cell = tr[2]
+                    ok = (cell.endswith(" ms") and cell[:-3] in meds) or cell == f"{gem_ms / 1000:.1f} s"
+                    if not ok:
+                        fails.append(f"real-time table cell not in latency csv: {tr}")
+                notes.append(f"real-time table: {len(rts)} rows checked (latency csv: {len(lat)} rows)")
+                page.hover("#scatter circle[tabindex]", force=True)
+                if page.is_hidden("#tip2"):
+                    fails.append("scatter tooltip did not appear on hover")
+                page.mouse.move(0, 0)
                 # bound headline numbers
                 notes.append("verdict: " + page.inner_text("#verdict").replace("\n", " ")[:400])
                 # tooltip interaction

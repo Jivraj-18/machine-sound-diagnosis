@@ -115,19 +115,38 @@ With 5 examples per fault, the best model (FISHER @50k, `confusion/best_fewshot_
 
 Measured on Kaggle (4 vCPU + T4) and the laptop (`resources.csv`). The scenario is each monitored machine sending one 1-s clip per minute, with boxes planned at 50% load. Prices are list prices checked 2026-10-29 (`cost_at_scale.csv`; edit `cost_estimate.py` to change assumptions).
 
+**What "cost per machine per month" means:** the compute bill for analysing one compressor's sound for a month at one 1-second clip per minute, i.e. 43,800 clips. It is not a per-clip price; `cost_at_scale.csv` also gives the cost per 1,000 clips. It assumes enough machines to fill a server, and it covers the analysis only (not microphones, connectivity or storage). Every model and both sample rates are in the CSV; the page plots accuracy against this cost.
+
 | Pipeline | Compute per 1-s clip | One box handles | Cost per machine / month |
 |---|---|---|---|
-| Handcrafted + SVM, CPU | 37 ms on 1 core | ~1,600 machines per c7i.xlarge ($130/mo) | **≈ $0.08** |
+| Handcrafted features, CPU | 45 ms on 1 laptop core (median of 6 runs, 31–58 ms) | ~1,300 machines per c7i.xlarge ($130/mo) | **≈ $0.10** |
 | Dasheng + logreg, CPU | 20 ms on 4 vCPU | ~1,500 machines | ≈ $0.09 |
 | FISHER + logreg, CPU | 63 ms on 4 vCPU | ~480 machines | ≈ $0.27 |
 | FISHER + logreg, T4 GPU | 1.9 ms | ~16,000 machines per g4dn.xlarge ($384/mo) | ≈ $0.02 (only at large scale) |
 | BEATs + logreg, CPU | 153 ms on 4 vCPU | ~200 machines | ≈ $0.66 |
 | Gemini 3.1 Pro zero-shot | ~6 s latency; ~25 audio + 140 text in, ~450 out/thinking tokens | API | **≈ $254** (at chance accuracy) |
 
+- **No GPU is needed.** Every pipeline keeps up on an ordinary 4-vCPU server; a T4 GPU server ($384/mo) only beats CPU servers for FISHER above ~1,400 machines. If a GPU is wanted, the smallest cloud GPU (T4, 16 GB) is far more than enough.
 - **Model sizes are small.** Peak GPU memory was 0.1–1.3 GB and peak RAM 2–3.7 GB per model. Model load takes 1–35 s, once.
 - **Training cost is negligible.** Fitting the classifier on 40 labelled clips takes milliseconds.
 - **This experiment's paid cost** was ≈ $1.94 of Gemini tokens at Google list price (320 calls). The gateway's internal charge may differ. Kaggle GPU time was free.
 - **Bottom line:** a demo runs on a laptop with no cloud at all. At fleet scale the ML compute is cents per machine per month on CPU. Audio capture, transport and storage, not ML, will dominate the cost.
+
+## 5b. Real time (measured)
+
+`latency_bench.py` runs the live pipeline one clip at a time (clip → features/embedding → logistic regression on 5 clips per state), 100 clips, median and 95th percentile:
+
+| Pipeline | Where | Median | 95th pct | Accuracy on the 100 timed clips |
+|---|---|---|---|---|
+| Handcrafted features | laptop, 4 threads | 30.3 ms | 40.1 ms | 98% |
+| Handcrafted features | Kaggle 4 vCPU | 26.4 ms | 28.7 ms | 98% |
+| FISHER @50k | Kaggle 4 vCPU | 63.1 ms | 70.5 ms | 98% |
+| FISHER @50k | Kaggle T4 GPU | 9.9 ms | 10.8 ms | 98% |
+| Gemini 3.1 Pro zero-shot | API | 6.3 s (median response time of the 50 kHz zero-shot calls) | – | at chance |
+
+- So an answer arrives about 1 s after the sound starts (the 1-s clip plus tens of milliseconds), and the machine can be checked every second, continuously.
+- FISHER could not be timed on the laptop because the office network blocks Hugging Face's file CDN; Kaggle's 4-vCPU machine stands in for a small server.
+- Measured on recorded clips, not yet from a live microphone.
 
 ## 6. Verdict
 

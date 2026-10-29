@@ -46,8 +46,17 @@ def clip_features(x, sr):
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()
     ap.add_argument("--sr", type=int, default=50000)
+    ap.add_argument("--bench", action="store_true", help="time 200 clips on 1 core (for cost_estimate.py)")
     args = ap.parse_args()
     X, y, _, _ = load_dataset()
+    if args.bench:
+        for x in X[:10]:  # warm up librosa/numba caches so the timing is steady-state
+            clip_features(x, args.sr)
+        with ResourceMonitor(f"handcrafted_sr{args.sr // 1000}k_1core", 200,
+                             out_csv=CACHE_DIR.parent / "results" / "resources_local.csv", n_jobs=1, warmup=True):
+            for x in X[:200]:
+                clip_features(x, args.sr)
+        raise SystemExit
     with ResourceMonitor(f"handcrafted_sr{args.sr // 1000}k", len(X), n_jobs=8):
         F = np.stack(Parallel(n_jobs=8)(delayed(clip_features)(x, args.sr) for x in X))
     out = CACHE_DIR / f"emb_handcrafted_sr{args.sr // 1000}k.npy"

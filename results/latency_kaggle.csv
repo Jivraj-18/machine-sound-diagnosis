@@ -1,0 +1,4 @@
+pipeline,device,n_clips,median_ms,p95_ms,max_ms,accuracy_on_timed_clips,host,threads
+handcrafted features + logreg,cpu,100,26.4,28.7,29.6,0.98,Kaggle 4 vCPU + T4,4
+FISHER @50k + logreg,cpu,100,63.1,70.5,138.0,0.98,Kaggle 4 vCPU + T4,4
+FISHER @50k + logreg,cuda,100,9.9,10.8,24.4,0.98,Kaggle 4 vCPU + T4,4

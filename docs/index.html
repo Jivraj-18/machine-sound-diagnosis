@@ -116,6 +116,23 @@ summary { cursor: pointer; color: var(--ink-2); font-size: 14px; }
 .miss .title .arrow { color: var(--muted); font-weight: 400; }
 .miss p { font-size: 13px; color: var(--ink-2); margin: 6px 0 0; }
 .miss .meta { font-size: 12px; color: var(--muted); margin-top: 6px; }
+.explain { background: var(--surface); border: 1px solid var(--border); border-left: 4px solid var(--axis); border-radius: 10px;
+  padding: 12px 16px; margin: 8px 0 14px; font-size: 15px; }
+.explain p { margin: 0 0 8px; }
+.explain p:last-child { margin-bottom: 0; }
+.dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; border: 2px solid; }
+#scatter svg { display: block; width: 100%; height: auto; overflow: visible; }
+#scatter .tick, #scatter .lab { fill: var(--muted); font-size: 11px; font-variant-numeric: tabular-nums; }
+#scatter .lab { fill: var(--ink-2); font-size: 12px; }
+.rt { display: grid; grid-template-columns: minmax(120px, 34%) 1fr; gap: 6px 10px; align-items: center; margin: 0 4px 12px; font-size: 13px; }
+.rt .name { color: var(--ink-2); line-height: 1.25; }
+.rt .name small { display: block; color: var(--muted); font-size: 11px; }
+.rt .track { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.rt .bar { display: flex; height: 16px; min-width: 0; }
+.rt .bar span { display: block; height: 100%; }
+.rt .bar .listen { background: var(--axis); border-radius: 4px 0 0 4px; }
+.rt .bar .work { background: var(--s1); border-radius: 0 4px 4px 0; min-width: 3px; margin-left: 2px; }
+.rt .val { white-space: nowrap; font-variant-numeric: tabular-nums; color: var(--ink); font-weight: 600; }
 .callout { border-left: 3px solid var(--axis); padding: 2px 0 2px 12px; color: var(--ink-2); }
 ol.caveats li, ul.steps li { margin-bottom: 8px; }
 code, pre { font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-size: 13px; }
@@ -135,7 +152,7 @@ footer p { max-width: none; }
   <div class="inner">
     <span class="brand">Compressor sound diagnosis</span>
     <nav aria-label="Sections">
-      <a href="#setup">Setup</a><a href="#listen">Listen</a><a href="#right">Right</a><a href="#wrong">Wrong</a>
+      <a href="#setup">Setup</a><a href="#listen">Listen</a><a href="#right">Right</a><a href="#cost">Cost</a><a href="#realtime">Speed</a><a href="#wrong">Wrong</a>
       <a href="#zeroshot">Zero-shot</a><a href="#caveats">Caveats</a><a href="#demo">Demo</a><a href="#method">Method</a>
     </nav>
     <button class="theme" id="themeBtn" type="button" aria-label="Toggle light or dark theme">Theme</button>
@@ -160,6 +177,7 @@ footer p { max-width: none; }
     <div class="tile"><div class="label">Best model, 5 examples per fault</div><div class="value"><span data-v="fisher5"></span>%</div><div class="sub">FISHER, mean of 10 random draws</div></div>
     <div class="tile"><div class="label">1 example per fault</div><div class="value"><span data-v="fisher1"></span>%</div><div class="sub">same model</div></div>
     <div class="tile"><div class="label">Zero-shot, best</div><div class="value"><span data-v="zsBest"></span>%</div><div class="sub">random guess = 12.5%</div></div>
+    <div class="tile"><div class="label">Answer time</div><div class="value" id="rtTile"></div><div class="sub" id="rtTileSub"></div></div>
     <div class="tile"><div class="label">Healthy vs any fault</div><div class="value">Never confused</div><div class="sub">by any supervised model</div></div>
   </div>
 
@@ -210,6 +228,61 @@ footer p { max-width: none; }
       <p class="small muted" style="margin:6px 4px 2px">Macro accuracy (each fault weighted equally), mean of 10 random draws of training clips; everything not drawn is the test set.
       Logistic regression on each model's frozen fingerprints. Hover or tap the chart for exact values (± standard deviation).</p>
       <details><summary>Show the numbers as a table</summary><div class="tablewrap"><table id="fewTable"></table></div></details>
+    </div>
+
+    <h2 id="cost" style="margin-top:32px">Accuracy vs cost</h2>
+    <p class="takeaway" id="costHeadline"></p>
+    <div class="explain">
+      <p><b>What "cost" means here.</b> It is the cloud computing bill for listening to <b>one compressor for one month</b>.
+      We assume each compressor sends a 1-second sound clip <b>once a minute</b>, which is <b data-v="clipsMonth"></b> clips a month.
+      So "<span data-v="hcMonth"></span> per compressor per month" is the same as about <span data-v="hcPer1000"></span> for every 1,000 clips.</p>
+      <p>It counts the analysis only, not microphones, internet or storage. It also assumes enough compressors to keep a server busy:
+      one CPU server costs <span data-v="cpuServer"></span> a month and, with handcrafted features, keeps up with about <span data-v="hcPerServer"></span> compressors.
+      Gemini is a pay-per-clip service, so it has no server.</p>
+      <p><b>Does it need a GPU? No.</b> Every method here runs on an ordinary 4-core CPU server. FISHER takes <span data-v="fisherMs"></span> ms
+      to analyse a 1-second clip, and even the slowest model (CLAP) takes <span data-v="clapMs"></span> ms, while each compressor sends only one clip a minute.
+      A GPU only lowers the cost once there are enough compressors to keep it busy: a GPU server costs <span data-v="gpuServer"></span> a month,
+      so for FISHER it only beats CPU servers above about <span data-v="fisherBreak"></span> compressors. If one is ever needed, the smallest cloud GPU is plenty:
+      we measured on an NVIDIA T4 (16 GB), and the largest model used <span data-v="gpuPeak"></span> GB of its memory.</p>
+    </div>
+    <div class="chartcard">
+      <div class="controls">
+        <span id="rateLabel2">Sample rate:</span>
+        <div class="seg" role="group" aria-labelledby="rateLabel2">
+          <button type="button" data-mode="best" aria-pressed="true">Best per model</button>
+          <button type="button" data-mode="50k" aria-pressed="false">All at 50 kHz</button>
+          <button type="button" data-mode="16k" aria-pressed="false">All at 16 kHz</button>
+        </div>
+        <span id="hwLabel">Runs on:</span>
+        <div class="seg" role="group" aria-labelledby="hwLabel">
+          <button type="button" data-hw="cpu" aria-pressed="true">CPU server</button>
+          <button type="button" data-hw="gpu" aria-pressed="false">GPU server (large fleets)</button>
+        </div>
+      </div>
+      <ul class="legend" id="legend2"></ul>
+      <div id="scatter" role="img" aria-label="Scatter chart: accuracy against monthly cost per compressor, one point per method; the table below lists the same values"></div>
+      <div class="tip" id="tip2" hidden></div>
+      <p class="small muted" style="margin:6px 4px 2px">Up is more accurate; left is cheaper. The cost axis is logarithmic: each step is 10× more expensive.
+      Accuracy uses 5 labelled examples per fault; the two zero-shot methods (hollow circles) use none. Handcrafted features need no GPU, so they stay on a CPU server.
+      Hover or tap a point for details.</p>
+      <div class="tablewrap"><table id="costCmpTable"></table></div>
+    </div>
+
+    <h2 id="realtime" style="margin-top:32px">How fast is the answer?</h2>
+    <p class="takeaway" id="rtHeadline"></p>
+    <div class="explain">
+      <p><b>What "real time" means here.</b> The system listens to 1 second of sound, then works out which state the compressor is in.
+      The answer appears about 1 second after the sound starts, and the next second of sound can be checked straight away, so the compressor is checked every second, continuously.</p>
+      <p id="rtCapacity"></p>
+    </div>
+    <div class="chartcard">
+      <p class="small" style="margin:0 4px 8px;color:var(--ink-2)">Time from the start of the sound to the answer. Every bar includes the 1 second of listening (light part);
+      the dark part is the analysis. Median of 100 clips, each analysed on its own, as a live system would.</p>
+      <div id="rtBars"></div>
+      <div class="tablewrap"><table id="rtTable"></table></div>
+      <p class="small muted" style="margin:6px 4px 2px">Measured by <code>latency_bench.py</code> on recorded clips: this laptop, and a Kaggle cloud machine (4 vCPU + NVIDIA T4) for FISHER,
+      whose model files the office network blocks. Gemini's time is the median response time of the 160 calls in the zero-shot test.
+      The analysis has not yet been run from a live microphone.</p>
     </div>
 
     <h3 id="protoHeadline"></h3>
@@ -297,10 +370,12 @@ footer p { max-width: none; }
       then test on the rest. If accuracy holds, there is a product story. If it collapses, the ~100% here only meant "this machine, this session".</li>
       <li><b>Use real fault data:</b> a client's own maintenance logs, matched to recordings, would show whether real-world faults are as separable as seeded lab faults.</li>
       <li><b>Don't build on zero-shot</b> (section 6), and don't let an LLM explain diagnoses it can't make.</li>
-      <li><b>Compute is not the obstacle.</b> The models are small and run in real time on a laptop. At fleet scale, measured costs are cents per machine per month on CPU:</li>
+      <li><b>Compute is not the obstacle.</b> The models are small and run in real time on a laptop. At fleet scale the analysis costs cents per compressor per month
+      (see <a href="#cost">accuracy vs cost</a>); microphones, connectivity and storage will cost more than the analysis.</li>
     </ul>
-    <div class="tablewrap"><table id="costTable"></table></div>
-    <p class="small muted">Assumes each machine sends one 1-second clip per minute, with servers planned at 50% load (list prices checked 2026-10-29). Audio capture and transport, not the ML, will dominate real costs.</p>
+    <p class="small muted">Cost assumptions: one 1-second clip per compressor per minute; servers planned at 50% of their measured speed; AWS on-demand list prices
+    (c7i.xlarge CPU server, g4dn.xlarge T4 GPU server) and Google's Gemini list price, checked 2026-10-29. Speeds were measured on a Kaggle 4-vCPU machine and T4 GPU
+    (handcrafted features: on a laptop core). Every row is in <a href="https://github.com/Jivraj-18/machine-sound-diagnosis/blob/main/results/cost_at_scale.csv">cost_at_scale.csv</a>.</p>
   </section>
 
   <!-- 9. Method -->
@@ -500,13 +575,185 @@ python analyze_misses.py &amp;&amp; python cost_estimate.py &amp;&amp; python bu
       tb.appendChild(tr);
     });
   }
-  document.querySelectorAll(".seg button").forEach(b => b.addEventListener("click", () => {
-    mode = b.dataset.mode;
-    document.querySelectorAll(".seg button").forEach(x => x.setAttribute("aria-pressed", String(x === b)));
-    updLegend(); draw(); fewTable();
+  // ---------- 4b. accuracy vs cost ----------
+  let hw = "cpu";
+  const usd = v => v >= 100 ? "$" + Math.round(v).toLocaleString("en-US") : v >= 0.995 ? "$" + v.toFixed(2)
+    : v >= 0.01 ? "$" + v.toFixed(2) : "$" + v.toPrecision(2);
+  const costRow = (model, rate, method, h) => D.cost.find(c => c.model === model && c.rate === rate && c.method === method &&
+    (c.hw === h || c.hw === "api" || (h === "gpu" && model === "handcrafted" && c.hw === "cpu")));
+  const GEM = "gemini-3.1-pro-preview";
+  const gemRate = () => mode === "16k" ? "16k" : "50k";
+  const zsRate = id => mode === "best" ? (zs(id + "@50k") >= zs(id + "@16k") ? "50k" : "16k") : mode;
+  function points() {
+    const out = MODELS.map(md => {
+      const r = rateFor(md.id), c = costRow(md.id, r, "few-shot (logreg)", hw);
+      return { name: md.name, sub: "5 examples per fault", rate: r, color: md.color, hollow: false,
+               acc: D.fewshot[md.id][r]["5"][0], c };
+    });
+    const cr = zsRate("clap");
+    out.push({ name: "CLAP zero-shot", sub: "no examples", rate: cr, color: "var(--s6)", hollow: true,
+               acc: zs("clap@" + cr), c: costRow("clap", cr, "zero-shot", hw) });
+    const gr = mode === "best" ? zsRate(GEM) : gemRate();
+    out.push({ name: "Gemini 3.1 Pro zero-shot", sub: "no examples", rate: gr, color: "var(--ink-2)", hollow: true,
+               acc: zs(GEM + "@" + gr), c: costRow(GEM, gr, "zero-shot", hw) });
+    return out;
+  }
+  const hwName = c => c.hw === "api" ? "Gemini API" : c.hw === "gpu" ? "GPU server" : "CPU server";
+  const legend2 = document.getElementById("legend2");
+  const scatter = document.getElementById("scatter"), tip2 = document.getElementById("tip2");
+  function drawScatter() {
+    const P = points();
+    legend2.replaceChildren();
+    P.forEach(p => { const li = el("li"); const k = el("span", { class: "dot" }); k.style.borderColor = p.color;
+      k.style.background = p.hollow ? "transparent" : p.color; li.append(k, document.createTextNode(p.name)); legend2.appendChild(li); });
+    const W = Math.max(280, scatter.clientWidth), H = W < 480 ? 300 : 340, narrow = W < 480;
+    const m = { l: 36, r: narrow ? 10 : 14, t: 12, b: 36 };
+    const L0 = -2, L1 = 3; // $0.01 .. $1,000
+    const x = v => m.l + (Math.log10(v) - L0) / (L1 - L0) * (W - m.l - m.r);
+    const y = v => m.t + (100 - v) / 100 * (H - m.t - m.b);
+    const svg = sv("svg", { viewBox: `0 0 ${W} ${H}`, width: W, height: H });
+    [0, 25, 50, 75, 100].forEach(v => {
+      svg.appendChild(sv("line", { x1: m.l, x2: W - m.r, y1: y(v), y2: y(v), stroke: v === 0 ? "var(--axis)" : "var(--grid)", "stroke-width": 1 }));
+      const t = sv("text", { x: m.l - 6, y: y(v) + 4, "text-anchor": "end", class: "tick" }); t.textContent = v + "%"; svg.appendChild(t);
+    });
+    ["1¢", "10¢", "$1", "$10", "$100", "$1,000"].forEach((s, i) => {
+      const xv = x(Math.pow(10, L0 + i));
+      svg.appendChild(sv("line", { x1: xv, x2: xv, y1: m.t, y2: H - m.b, stroke: "var(--grid)", "stroke-width": 1 }));
+      const t = sv("text", { x: xv, y: H - m.b + 16, "text-anchor": i === 0 ? "start" : i === 5 ? "end" : "middle", class: "tick" }); t.textContent = s; svg.appendChild(t);
+    });
+    const xl = sv("text", { x: (m.l + W - m.r) / 2, y: H - 4, "text-anchor": "middle", class: "tick" });
+    xl.textContent = "cost per compressor per month →"; svg.appendChild(xl);
+    svg.appendChild(sv("line", { x1: m.l, x2: W - m.r, y1: y(12.5), y2: y(12.5), stroke: "var(--chance)", "stroke-width": 1.5 }));
+    const ct = sv("text", { x: m.l + 4, y: y(12.5) - 5, class: "tick" }); ct.textContent = "random guess 12.5%"; svg.appendChild(ct);
+    // points, then direct labels placed greedily so they don't overlap
+    const boxes = [];
+    const place = (px, py, w) => {
+      // right of the point first; a label on the left sits above/below it so it can't be read as the next point's
+      const cand = [[1, 0], [1, -13], [1, 13], [-1, -13], [-1, 13], [1, -26], [1, 26], [-1, -26], [-1, 26], [-1, 0]];
+      for (const [side, dy] of cand) {
+        const bx = side > 0 ? px + 9 : px - 9 - w, by = py + dy - 9;
+        if (bx < m.l || bx + w > W - 2) continue;
+        if (boxes.every(b => bx > b[0] + b[2] || bx + w < b[0] || by > b[1] + 13 || by + 13 < b[1])) { boxes.push([bx, by, w]); return [bx, py + dy + 4]; }
+      }
+      return null;
+    };
+    P.forEach(p => boxes.push([x(p.c.per_machine) - 6, y(p.acc) - 6, 12]));
+    P.forEach(p => {
+      const px = x(p.c.per_machine), py = y(p.acc);
+      svg.appendChild(sv("circle", { cx: px, cy: py, r: 5, fill: p.hollow ? "var(--surface)" : p.color, stroke: p.hollow ? p.color : "var(--surface)", "stroke-width": 2 }));
+    });
+    // on a phone the supervised points sit too close to label; the legend and the table name them
+    P.slice().sort((a, b) => b.acc - a.acc).filter(p => !narrow || p.hollow).forEach(p => {
+      const label = narrow ? p.name.replace(" 3.1 Pro", "").replace(" zero-shot", " (zero-shot)") : p.name;
+      const at = place(x(p.c.per_machine), y(p.acc), label.length * 6.4);
+      if (at) { const t = sv("text", { x: at[0], y: at[1], class: "lab" }); t.textContent = label; svg.appendChild(t); }
+    });
+    P.forEach(p => {
+      const px = x(p.c.per_machine), py = y(p.acc);
+      const hit = sv("circle", { cx: px, cy: py, r: 14, fill: "transparent", tabindex: 0, "aria-label": p.name + ": " + fmt(p.acc) + "%, " + usd(p.c.per_machine) + " per compressor per month" });
+      const show = () => {
+        tip2.replaceChildren(el("div", { class: "hd" }, p.name + " @" + p.rate + " · " + p.sub));
+        [["Accuracy", fmt(p.acc) + "%"], ["Per compressor / month", usd(p.c.per_machine)], ["Per 1,000 clips", usd(p.c.per_1000)], ["Runs on", hwName(p.c)]]
+          .forEach(([k, v]) => { const row = el("div", { class: "row" }); row.append(el("b", null, v), el("span", null, k)); tip2.appendChild(row); });
+        tip2.hidden = false;
+        const cw = scatter.parentElement.clientWidth, tw = tip2.offsetWidth;
+        let left = scatter.offsetLeft + px + 14; if (left + tw > cw - 4) left = scatter.offsetLeft + px - tw - 14;
+        tip2.style.left = Math.max(4, left) + "px"; tip2.style.top = (scatter.offsetTop + Math.max(4, py - 40)) + "px";
+      };
+      const hide = () => { tip2.hidden = true; };
+      hit.addEventListener("pointerenter", show); hit.addEventListener("pointerdown", show); hit.addEventListener("focus", show);
+      hit.addEventListener("pointerleave", hide); hit.addEventListener("blur", hide);
+      svg.appendChild(hit);
+    });
+    scatter.replaceChildren(svg);
+  }
+  function costTable() {
+    const t = document.getElementById("costCmpTable"); t.replaceChildren();
+    const hr = el("tr"); ["Method", "Accuracy", "Per compressor / month", "Per 1,000 clips", "Runs on", "Compressors / server"].forEach(h => hr.appendChild(el("th", null, h)));
+    t.appendChild(el("thead")).appendChild(hr);
+    const tb = t.appendChild(el("tbody"));
+    points().sort((a, b) => b.acc - a.acc).forEach(p => {
+      const tr = el("tr"); tr.dataset.model = p.c.model; tr.dataset.method = p.c.method; tr.dataset.rate = p.rate; tr.dataset.hw = p.c.hw;
+      tr.append(el("td", null, p.name + " @" + p.rate), el("td", null, fmt(p.acc) + "%"), el("td", null, usd(p.c.per_machine)),
+        el("td", null, usd(p.c.per_1000)), el("td", null, hwName(p.c)),
+        p.c.machines_per_server ? el("td", null, p.c.machines_per_server.toLocaleString("en-US")) : el("td", { class: "na" }, "–"));
+      tb.appendChild(tr);
+    });
+  }
+  (function () { // headline + explainer numbers: defaults (best rate per model, CPU server)
+    const P = points(), sup = P.filter(p => !p.hollow);
+    const top = sup.reduce((a, b) => b.acc > a.acc ? b : a), cheap = sup.reduce((a, b) => b.c.per_machine < a.c.per_machine ? b : a);
+    const gem = P[P.length - 1];
+    document.getElementById("costHeadline").textContent =
+      (cheap === top ? top.name + " is both the most accurate and the cheapest: " + fmt(top.acc) + "% for " + usd(top.c.per_machine)
+        : cheap.name + " gets " + fmt(cheap.acc) + "% for " + usd(cheap.c.per_machine) + " per compressor a month; the most accurate, " + top.name + ", gets " + fmt(top.acc) + "% for " + usd(top.c.per_machine))
+      + ". Gemini costs " + usd(gem.c.per_machine) + " and is no better than guessing.";
+    const hc = costRow("handcrafted", "50k", "few-shot (logreg)", "cpu");
+    Object.assign(V, { clipsMonth: D.clips_per_month.toLocaleString("en-US"), hcMonth: usd(hc.per_machine),
+      hcPer1000: usd(hc.per_1000), cpuServer: usd(hc.server_month), hcPerServer: (Math.round(hc.machines_per_server / 100) * 100).toLocaleString("en-US") });
+    const fc = costRow("fisher", "50k", "few-shot (logreg)", "cpu"), fg = D.cost.find(c => c.model === "fisher" && c.rate === "50k" && c.hw === "gpu");
+    const clapMs = Math.max.apply(null, D.cost.filter(c => c.model === "clap" && c.hw === "cpu").map(c => c.ms));
+    Object.assign(V, { fisherMs: String(Math.round(fc.ms)), clapMs: String(Math.round(clapMs)), gpuServer: usd(fg.server_month),
+      fisherBreak: (Math.round(fg.server_month / fc.per_machine / 100) * 100).toLocaleString("en-US"),
+      gpuPeak: (D.gpu_peak_mb / 1024).toFixed(1) });
+    document.querySelectorAll("#cost ~ .explain [data-v]").forEach(n => { n.textContent = V[n.dataset.v]; });
+  })();
+
+  // ---------- 4c. real time ----------
+  (function () {
+    const lat = (pipe, host, dev) => D.latency.find(r => r.pipeline.indexOf(pipe) === 0 && r.host.indexOf(host) === 0 && r.device === dev);
+    const gem = D.cost.find(c => c.model === GEM && c.rate === "50k");
+    const R = [
+      ["Handcrafted features", "this laptop", lat("handcrafted", "laptop", "cpu")],
+      ["Handcrafted features", "cloud CPU (4 vCPU)", lat("handcrafted", "Kaggle", "cpu")],
+      ["FISHER", "cloud CPU (4 vCPU)", lat("FISHER", "Kaggle", "cpu")],
+      ["FISHER", "cloud GPU (T4)", lat("FISHER", "Kaggle", "cuda")],
+    ].filter(r => r[2]).map(([n, w, r]) => ({ n, w, med: r.median_ms, p95: r.p95_ms, acc: r.accuracy_on_timed_clips }));
+    R.push({ n: "Gemini 3.1 Pro (zero-shot)", w: "Google API, over the internet", med: gem.ms, p95: null, acc: null });
+    const total = r => 1000 + r.med, maxT = Math.max.apply(null, R.map(total));
+    const sec = ms => (ms / 1000).toFixed(ms < 1950 ? 2 : 1) + " s";
+    const msTxt = ms => ms >= 1000 ? sec(ms) : (ms < 10 ? ms.toFixed(1) : String(Math.round(ms))) + " ms";
+    const bars = document.getElementById("rtBars"); bars.className = "rt";
+    R.forEach(r => {
+      const name = el("div", { class: "name" }, r.n); name.appendChild(el("small", null, r.w));
+      const track = el("div", { class: "track" }), bar = el("div", { class: "bar" });
+      bar.style.width = (100 * total(r) / maxT * 0.82).toFixed(2) + "%";
+      const l = el("span", { class: "listen", title: "listening: 1 s" }); l.style.flex = "1000 0 0";
+      const w = el("span", { class: "work", title: "analysis: " + msTxt(r.med) }); w.style.flex = r.med + " 0 0";
+      bar.append(l, w); track.append(bar, el("span", { class: "val" }, sec(total(r))));
+      bars.append(name, track);
+    });
+    const t = document.getElementById("rtTable");
+    const hr = el("tr"); ["Method", "Runs on", "Analysis time", "Slowest 5% of clips", "Sound → answer"].forEach(h => hr.appendChild(el("th", null, h)));
+    t.appendChild(el("thead")).appendChild(hr);
+    const tb = t.appendChild(el("tbody"));
+    R.forEach(r => {
+      const tr = el("tr"); tr.append(el("td", null, r.n), el("td", null, r.w), el("td", null, msTxt(r.med)),
+        r.p95 == null ? el("td", { class: "na" }, "–") : el("td", null, "under " + msTxt(r.p95)), el("td", null, sec(total(r))));
+      tb.appendChild(tr);
+    });
+    document.getElementById("rtTile").textContent = "~1 s";
+    document.getElementById("rtTileSub").textContent = "1 s of sound + " + msTxt(R[0].med) + " analysis on a laptop";
+    const hl = R[0], perCore = Math.floor(1000 / hl.med / 10) * 10;
+    document.getElementById("rtHeadline").textContent = "About 1 second from sound to answer: after each 1-second clip, " + hl.n.toLowerCase() +
+      " answer in " + msTxt(hl.med) + " on a laptop. Gemini takes " + sec(gem.ms) + " per clip, and its answers are no better than guessing.";
+    document.getElementById("rtCapacity").textContent = "The analysis is light: " + hl.n.toLowerCase() + " use " + msTxt(hl.med) +
+      " of one laptop processor core per 1-second clip, so a single core could keep up with roughly " + perCore +
+      " microphones at once. No GPU and no internet connection are needed, so a live demo can run entirely on a laptop.";
+  })();
+
+  const syncSeg = () => {
+    document.querySelectorAll(".seg button[data-mode]").forEach(x => x.setAttribute("aria-pressed", String(x.dataset.mode === mode)));
+    document.querySelectorAll(".seg button[data-hw]").forEach(x => x.setAttribute("aria-pressed", String(x.dataset.hw === hw)));
+  };
+  document.querySelectorAll(".seg button[data-mode]").forEach(b => b.addEventListener("click", () => {
+    mode = b.dataset.mode; syncSeg(); updLegend(); draw(); fewTable(); drawScatter(); costTable();
   }));
-  updLegend(); draw(); fewTable();
-  let rz; window.addEventListener("resize", () => { clearTimeout(rz); rz = setTimeout(draw, 120); });
+  document.querySelectorAll(".seg button[data-hw]").forEach(b => b.addEventListener("click", () => {
+    hw = b.dataset.hw; syncSeg(); drawScatter(); costTable();
+  }));
+  updLegend(); draw(); fewTable(); drawScatter(); costTable();
+  let rz; window.addEventListener("resize", () => { clearTimeout(rz); rz = setTimeout(() => { draw(); drawScatter(); }, 120); });
 
   // protocols table
   const allA = D.protocols.map(p => p.A);
@@ -608,22 +855,6 @@ python analyze_misses.py &amp;&amp; python cost_estimate.py &amp;&amp; python bu
     });
   })();
 
-  // ---------- 8. cost ----------
-  (function () {
-    const want = [["handcrafted + SVM", "c7i", "Handcrafted features + SVM", "CPU server"], ["fisher @50k + logreg", "c7i", "FISHER + logistic regression", "CPU server"],
-      ["fisher @50k + logreg", "g4dn", "FISHER + logistic regression", "T4 GPU server"]];
-    const t = document.getElementById("costTable");
-    const hr = el("tr"); ["Pipeline", "Hardware", "Machines per server", "Cost per machine / month"].forEach(h => hr.appendChild(el("th", null, h)));
-    t.appendChild(el("thead")).appendChild(hr);
-    const tb = t.appendChild(el("tbody"));
-    want.forEach(([p, hw, name, hwName]) => {
-      const r = D.cost.find(c => c.pipeline === p && c.hardware.indexOf(hw) === 0); if (!r) return;
-      const tr = el("tr"); tr.append(el("td", null, name), el("td", null, hwName), el("td", null, r.machines_per_box.toLocaleString("en-US")), el("td", null, "$" + r.per_machine.toFixed(2)));
-      tb.appendChild(tr);
-    });
-    const gm = D.cost.find(c => c.pipeline.indexOf("gemini-3.1-pro-preview zero-shot (50k)") === 0);
-    if (gm) { const tr = el("tr"); tr.append(el("td", null, "Gemini 3.1 Pro zero-shot (at chance accuracy)"), el("td", null, "API"), el("td", { class: "na" }, "–"), el("td", null, "$" + Math.round(gm.per_machine))); tb.appendChild(tr); }
-  })();
 })();
 </script>
 </body>

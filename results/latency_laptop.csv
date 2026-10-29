@@ -1,0 +1,2 @@
+pipeline,device,n_clips,median_ms,p95_ms,max_ms,accuracy_on_timed_clips,host,threads
+handcrafted features + logreg,cpu,100,30.3,40.1,99.9,0.98,laptop CPU (8 logical cores),4
