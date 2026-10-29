@@ -1,0 +1,6 @@
+name,host,n_clips,wall_s,cpu_s,ms_per_clip,avg_cpu_cores,peak_rss_mb,peak_gpu_mb,n_jobs
+handcrafted_sr50k,laptop 8cpu,1800,9.59,0.52,5.33,0.05,456,0,8
+handcrafted_sr50k,laptop 8cpu,1800,7.72,0.53,4.29,0.07,454,0,8
+handcrafted_sr50k,laptop 8cpu,1800,127.71,9.48,70.95,0.07,458,0,8
+handcrafted_sr16k,laptop 8cpu,1800,37.3,8.38,20.72,0.22,458,0,8
+handcrafted_sr50k_1core,laptop 8cpu,200,7.41,7.45,37.03,1.01,530,0,1

@@ -1,0 +1,2 @@
+Misclassified clips from the best k=5 few-shot model: fisher @ 50k + logreg (protocol B, repeat 0; macro acc over 10 repeats 0.974).
+WAVs are written at 50 kHz (1 s each), amplitude scaled by 1/4.3 (global, not per clip).

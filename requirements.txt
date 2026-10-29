@@ -1,0 +1,18 @@
+# Local analysis environment (Python 3.11, Windows): features, evaluation, zero-shot, cost.
+# Exact versions used for the results in results/.
+numpy==2.2.6
+scipy==1.17.1
+scikit-learn==1.9.1
+librosa==0.11.0
+numba==0.61.2
+llvmlite==0.44.0
+joblib==1.6.0
+matplotlib==3.11.2
+pandas==3.1.0
+soundfile==0.14.0
+psutil==7.2.2
+requests==2.34.2
+tqdm==4.70.1
+# Windows only: this machine has no system VC++ runtime; llvmlite.dll needs it.
+# After install, copy .venv/msvcp140*.dll and .venv/concrt140.dll into .venv/Lib/site-packages/llvmlite/binding/
+msvc-runtime==14.44.35112; sys_platform == "win32"

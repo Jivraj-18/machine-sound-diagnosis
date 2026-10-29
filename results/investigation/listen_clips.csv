@@ -1,0 +1,9 @@
+cls,reading,audio,img
+Healthy,186,assets/audio/listen_Healthy.wav,assets/img/spec_Healthy.png
+Bearing,194,assets/audio/listen_Bearing.wav,assets/img/spec_Bearing.png
+Flywheel,100,assets/audio/listen_Flywheel.wav,assets/img/spec_Flywheel.png
+LIV,184,assets/audio/listen_LIV.wav,assets/img/spec_LIV.png
+LOV,32,assets/audio/listen_LOV.wav,assets/img/spec_LOV.png
+NRV,109,assets/audio/listen_NRV.wav,assets/img/spec_NRV.png
+Piston,172,assets/audio/listen_Piston.wav,assets/img/spec_Piston.png
+Riderbelt,191,assets/audio/listen_Riderbelt.wav,assets/img/spec_Riderbelt.png

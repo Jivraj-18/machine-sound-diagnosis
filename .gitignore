@@ -1,0 +1,14 @@
+# secrets / local environment
+.env
+.venv/
+__pycache__/
+*.pyc
+
+# dataset and derived caches (not redistributed; see README)
+data/
+cache/
+kaggle/dataset/
+kaggle/out_*/
+
+# local logs with machine paths
+results/evaluate_log.txt
